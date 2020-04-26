@@ -1,7 +1,7 @@
 {
 	"id" : "rpict",
 	"name" : "RPICT7V1",
-	"description" : "Plugin pour utiliser sur Jeedom les cartes RPICT series en HAT pour Raspberry Pi.",
+	"description" : "Plugin permettant d'utiliser sur Jeedom les cartes RPICT series en HAT pour Raspberry Pi.",
 	"licence" : "AGPL",
 	"author" : "tlierdotfr",
 	"require" : "3.0",
@@ -11,6 +11,6 @@
 	"hasOwnDeamon" : true,
 	"maxDependancyInstallTime" : 45,
 	"changelog" : "https://tlierdotfr.github.io/jeedom-plugin-rpict/#language#/changelog",
-	"documentation" : "https://tlierdotfr.github.io/plugin-teleinfo/#language#/",
-	"pluginVersion" : "1.0.0"
+	"documentation" : "https://tlierdotfr.github.io/jeedom-plugin-rpict/#language#/",
+	"pluginVersion" : "0.9.0"
 }
