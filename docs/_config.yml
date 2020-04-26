@@ -1,0 +1,26 @@
+---
+langs: [fr_FR]
+baseurl: "/"
+sass:
+  sass_dir: assets/css
+  style: compressed
+markdown: kramdown
+permalink: /404.html
+kramdown:
+  input: GFM
+  hard_wrap: false
+highlighter: rouge
+gems:
+- jekyll-paginate
+- jekyll-seo-tag
+exclude:
+- vendor
+plugins:
+- jekyll-seo-tag
+title: "Documentation Jeedom-Plugin-Rpict"
+description: "Ceci est la documentation du plugin Rpict"
+author: "tlierdotfr"
+social:
+  name: tlierdotfr
+  links:
+    - https://github.com/tlierdotfr
