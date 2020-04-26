@@ -10,7 +10,7 @@ URL = http://#IP_JEEDOM#:#PORT_JEEDOM#/jeedom/plugins/rpict/core/php/jeeRpict.ph
  #PORT_JEEDOM# correspond au port d'accès à votre Jeedom
  #VOTRE_API_JEEDOM# est la clé API disponible depuis le menu Général / Administration / Configuration
 
- ![rpict_api](../images/teleinformation_api_menu1.png)
+ ![rpict_api](../images/rpict_api_menu1.png)
 
  #NODE_ID_RPICT# correspond au NodeID de la carte RPICT. Cette information est obligatoirement transmise par la carte RPICT lorsque vous recevez une trame.
 
