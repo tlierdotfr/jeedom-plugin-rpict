@@ -12,5 +12,5 @@
 	"maxDependancyInstallTime" : 45,
 	"changelog" : "https://tlierdotfr.github.io/jeedom-plugin-rpict/#language#/changelog",
 	"documentation" : "https://tlierdotfr.github.io/jeedom-plugin-rpict/#language#/",
-	"pluginVersion" : "0.9.1"
+	"pluginVersion" : "0.9.2"
 }

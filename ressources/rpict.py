@@ -115,11 +115,12 @@ class Rpict:
         """
         try:
             self._log.info("Try to open Rpict link '%s' with speed '%s'" % (self._device, self._vitesse))
-            self._ser = serial.Serial(self._device, self._vitesse, bytesize=7, parity='E', stopbits=1)
+            #self._ser = serial.Serial(self._device, self._vitesse, bytesize=7, parity='E', stopbits=1)
+            self._ser = serial.Serial(self._device, self._vitesse, bytesize=7, parity='N', stopbits=1)
             self._log.info("Rpict link successfully opened")
         except:
             error = "Error opening Rpict link '%s' : %s" % (self._device, traceback.format_exc())
-            self._log.error(error)
+            #self._log.error(error)
             raise RpictException(error)
 
     def close(self):
@@ -167,6 +168,7 @@ class Rpict:
         try:
             self.open()
         except RpictException as err:
+            print "Error opening serial"
             self._log.error(err.value)
             self.terminate()
             return
@@ -212,6 +214,7 @@ class Rpict:
             except Exception:
                 erreur = ""
         self.terminate()
+
     def exit_handler(self, *args):
         self.terminate()
         self._log.info("[exit_handler]")
@@ -276,6 +279,7 @@ if __name__ == "__main__":
             error = "Can not get sleep %s" % options.sleep
             raise RpictException(error)
     if global_can_start == 'true':
+        print "Init deamon ..."
         pid = str(os.getpid())
         file("/tmp/rpict.pid", 'w').write("%s\n" % pid)
         print "pidfile : " + "/tmp/rpict.pid"
