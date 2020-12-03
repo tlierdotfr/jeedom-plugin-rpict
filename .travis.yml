@@ -28,6 +28,7 @@ matrix:
             - aspell
             - aspell-fr
       script:
+        - gem install chef-utils -v 16.6.14
         - gem install mdl
         - cd ${TRAVIS_BUILD_DIR}
         - ./travis/tools/setCustomMDWarnings.sh
