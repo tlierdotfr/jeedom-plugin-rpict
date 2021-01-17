@@ -94,19 +94,5 @@
     },
     "plugins\/rpict\/plugin_info\/info.json": {
         "Plugin pour utiliser les modems téléinformation USB": "Plugin pour utiliser les modems téléinformation USB"
-    },
-    "plugins\/rpict\/desktop\/php\/panel.php": {
-        "Attention une trop grande plage de dates peut mettre très longtemps à être calculée ou même ne pas s'afficher": "Attention une trop grande plage de dates peut mettre très longtemps à être calculée ou même ne pas s'afficher",
-        "Ok": "Ok",
-        "Vérifier l'intégrité des données": "Vérifier l'intégrité des données",
-        " Vérifier ": " Vérifier ",
-        "Ma consommation": "Ma consommation",
-        "Journée": "Journée",
-        "Mois": "Mois",
-        "Année": "Année"
-    },
-    "plugins\/rpict\/desktop\/js\/panel.js": {
-        "Santé": "Santé",
-        "'+object.name+'": "'+object.name+'"
     }
 }
