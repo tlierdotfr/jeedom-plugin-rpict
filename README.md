@@ -1,4 +1,4 @@
-# jeedom-plugin-rpict ![build](https://travis-ci.org/tlierdotfr/jeedom-plugin-rpict.svg?branch=master)
+# jeedom-plugin-rpict ![build](https://travis-ci.org/tlierdotfr/jeedom-plugin-rpict.svg?branch=stable)
 
 Plugin pour utiliser sur Jeedom les cartes RPICT series en HAT pour Raspberry Pi.
 
