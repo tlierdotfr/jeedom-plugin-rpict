@@ -277,7 +277,6 @@ class rpict extends eqLogic
                 $cmd->setSubType('numeric');
                 $cmd->setUnite('Wh');
                 $cmd->setIsHistorized(0);
-                $cmd->setEventOnly(1);
                 $cmd->setIsVisible(0);
                 $cmd->save();
             }
