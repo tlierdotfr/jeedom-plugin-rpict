@@ -178,13 +178,13 @@ class Rpict:
             frame = self._ser.readline()
             self._log.debug(frame)
             
-            data_temp = frame.split()
+            data_temp = frame.split(',')
             x = 0
             data['nid'] = data_temp.pop(x)
             for value in data_temp:
                 x += 1
                 cle="ch" + str(x)
-                data[cle] = str(value)
+                data[cle] = str(value).strip()
             #print(data)
 
             self.cmd = 'nice -n 19 timeout 8 /usr/bin/php ' + self._realpath + '/../php/jeeRpict.php api=' + self._cleApi
