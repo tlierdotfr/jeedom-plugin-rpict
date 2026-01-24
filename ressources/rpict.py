@@ -8,7 +8,10 @@
 import _thread
 import argparse
 import json
+import os
+import signal
 import sys
+import time
 import traceback
 import globals
 
@@ -45,7 +48,7 @@ class Rpict:
         """ close telinfo modem
         """
         logging.info("RPICT------CLOSE CONNECTION")
-        if globals.RPICT_SERIAL is not None and globals.RPICT_SERIAL.isOpen():
+        if globals.RPICT_SERIAL is not None and globals.RPICT_SERIAL.is_open:
             globals.RPICT_SERIAL.close()
             logging.info("RPICT------CONNECTION CLOSED")
 
@@ -73,7 +76,7 @@ class Rpict:
             name="ch" + str(x)
             content[name] = str(value)
             logging.debug('RPICT----name : ' + name + ' value : ' + str(value))
-        return content
+        return [content]
 
                         
     # noinspection PyBroadException
@@ -119,11 +122,11 @@ class Rpict:
             logging.debug("RPICT------ START SLEEPING " + str(globals.cycle_sommeil) + " seconds")
             time.sleep(globals.cycle_sommeil)
             logging.debug("RPICT------ WAITING : " + str(
-                globals.RPICT_SERIAL.inWaiting()) + " octets dans la file apres sleep ")
-            if globals.RPICT_SERIAL.inWaiting() > 1500:
-                globals.RPICT_SERIAL.flushInput()
+                globals.RPICT_SERIAL.in_waiting) + " octets dans la file apres sleep ")
+            if globals.RPICT_SERIAL.in_waiting > 1500:
+                globals.RPICT_SERIAL.reset_input_buffer()
                 logging.debug("RPICT------ BUFFER OVERFLOW => FLUSH")
-                logging.debug(str(globals.RPICT_SERIAL.inWaiting()) + " octets dans la file apres flush ")
+                logging.debug(str(globals.RPICT_SERIAL.in_waiting) + " octets dans la file apres flush ")
         self.terminate()
 
 
