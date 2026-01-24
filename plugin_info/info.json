@@ -4,12 +4,12 @@
 	"description" : "Plugin permettant d'utiliser sur Jeedom les cartes RPICT series en HAT pour Raspberry Pi.",
 	"licence" : "AGPL",
 	"author" : "tlierdotfr",
-	"require" : "3.0",
+	"require" : "4.2",
 	"category" : "automation protocol",
 	"hasDependency" : true,
 	"hasOwnDeamon" : true,
 	"maxDependancyInstallTime" : 45,
 	"changelog" : "https://tlierdotfr.github.io/jeedom-plugin-rpict/#language#/changelog",
 	"documentation" : "https://tlierdotfr.github.io/jeedom-plugin-rpict/#language#/",
-	"pluginVersion" : "1.0.0"
+	"pluginVersion" : "2.0.0"
 }

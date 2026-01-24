@@ -1,90 +1,33 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 """ Read one rpict frame and output the frame in CSV format on stdout
 """
 
-import serial
+import _thread
+import argparse
+import json
 import os
+import signal
+import sys
 import time
 import traceback
-import logging
-import sys
-from optparse import OptionParser
-from datetime import datetime
-import subprocess
-import urllib2
-import threading
-import signal
+import globals
 
-# Default log level
-gLogLevel = logging.INFO
+try:
+    from jeedom.jeedom import *
+except ImportError as ex:
+    print("Error: importing module from jeedom folder")
+    print(ex)
+    sys.exit(1)
 
-# Device name
-global_device_name = '/dev/ttyAMA0'
-# Default output is stdout
-global_output = sys.__stdout__
-global_api = ''
-global_real_path = ''
-global_vitesse = '38400'
-global_can_start = 'true'
-global_logfile = os.path.dirname(os.path.realpath(__file__)) + '/../../../log/rpict_deamon'
-global_sleep = 0
-# ----------------------------------------------------------------------------
-# LOGGING
-# ----------------------------------------------------------------------------
-class MyLogger:
-    """ Our own logger """
-    def __init__(self):
-        self._logger = logging.getLogger('rpict')
-        hdlr = logging.FileHandler(global_logfile)
-        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        hdlr.setFormatter(formatter)
-        self._logger.addHandler(hdlr)
-        self._logger.setLevel(gLogLevel)
-        self.info("logger started in " + logging.getLevelName(self._logger.getEffectiveLevel()) + " mode")
+import serial
+from datetime import date, datetime
 
-    def debug(self, text):
-        try:
-            self._logger.debug(text)
-        except NameError:
-            pass
-
-    def info(self, text):
-        try:
-            text = text.replace("'", "")
-            self._logger.info(text)
-        except NameError:
-            pass
-
-    def warning(self, text):
-        try:
-            text = text.replace("'", "")
-            self._logger.warn(text)
-        except NameError:
-            pass
-
-    def error(self, text):
-        try:
-            text = text.replace("'", "")
-            self._logger.error(text)
-        except NameError:
-            pass
-
-
-# ----------------------------------------------------------------------------
-# Exception
-# ----------------------------------------------------------------------------
-class RpictException(Exception):
-    """
-    Rpict exception
-    """
-
+class error(Exception):
     def __init__(self, value):
-        Exception.__init__(self)
         self.value = value
-
     def __str__(self):
         return repr(self.value)
 
@@ -93,198 +36,262 @@ class RpictException(Exception):
 # Rpict core
 # ----------------------------------------------------------------------------
 class Rpict:
-    """ Fetch rpictrmation datas and call user callback
+    """ Fetch rpict datas and call user callback
     each time all data are collected
     """
 
-    def __init__(self, device, cleapi, realpath, vitesse):
-        """ @param device : rpict device path
-        @param log : log instance
-        @param callback : method to call each time all data are collected
-        The datas will be passed using a dictionnary
-        """
-        self._log = MyLogger()
-        self._device = device
-        self._cleApi = cleapi
-        self._realpath = realpath
-        self._vitesse = vitesse
-        self._ser = None
+    def __init__(self):
+        logging.debug("RPICT------INIT CONNECTION")
 
-    def open(self):
-        """ open rpict device
+    @staticmethod
+    def close():
+        """ close telinfo modem
         """
-        try:
-            self._log.info("Try to open Rpict link '%s' with speed '%s'" % (self._device, self._vitesse))
-            #self._ser = serial.Serial(self._device, self._vitesse, bytesize=7, parity='E', stopbits=1)
-            self._ser = serial.Serial(self._device, self._vitesse, bytesize=7, parity='N', stopbits=1)
-            self._log.info("Rpict link successfully opened")
-        except:
-            error = "Error opening Rpict link '%s' : %s" % (self._device, traceback.format_exc())
-            #self._log.error(error)
-            raise RpictException(error)
-
-    def close(self):
-        """ close rpict link
-        """
-        self._log.info("Try to close Rpict link")
-        if self._ser != None  and self._ser.isOpen():
-            self._ser.close()
-            self._log.info("Rpict link successfully closed")
+        logging.info("RPICT------CLOSE CONNECTION")
+        if globals.RPICT_SERIAL is not None and globals.RPICT_SERIAL.is_open:
+            globals.RPICT_SERIAL.close()
+            logging.info("RPICT------CONNECTION CLOSED")
 
     def terminate(self):
-        print "Terminating..."
+        print("Terminating...")
         self.close()
         os.remove("/tmp/rpict.pid")
         sys.exit()
 
+    def read(self):
+        """ Fetch one full frame for serial port
+        If some part of the frame is corrupted, it waits until the next one, so if you have corruption issue,
+        this method can take time, but it enures that the frame returned is valid.
+        @return frame : list of dict {name, value, checksum}
+        """
+        content = {}
+        resp = (globals.RPICT_SERIAL.readline().decode("UTF-8"))
+        
+        data_temp = resp.split()
+        x = 0
+        content['nid'] = data_temp.pop(x)
+        logging.debug('RPICT----nid : ' + content['nid'])
+        for value in data_temp:
+            x += 1
+            name="ch" + str(x)
+            content[name] = str(value)
+            logging.debug('RPICT----name : ' + name + ' value : ' + str(value))
+        return [content]
+
+                        
+    # noinspection PyBroadException
     def run(self):
         """ Main function
         """
-        print "Starting deamon..."
         data = {}
         data_temp = {}
-        separateur = " "
-        send_data = ""
-
-        def target():
-            self.process = None
-            self.process = subprocess.Popen(self.cmd + send_data_bak, shell=True)
-            self.process.communicate()
-            self.timer.cancel()
-
-        def timer_callback():
-            #logger.debug("Thread timeout, terminate it")
-            if self.process.poll() is None:
-                try:
-                    self.process.kill()
-                except OSError as error:
-                    #logger.error("Error: %s " % error)
-                    self._log.error("Error: %s " % error)
-                self._log.warning("Thread terminated")
-            else:
-                self._log.warning("Thread not alive")
-
-        # Open Rpict link
-        try:
-            self.open()
-        except RpictException as err:
-            print "Error opening serial"
-            self._log.error(err.value)
-            self.terminate()
-            return
-        # Read a frame
+        raz_day = 0
+        raz_time = 0
+        info_heure_calcul = 0
+        
+        # Read a frame + RAZ au changement de date + evite le heartbeat du demon
+        raz_time = datetime.now()
+        raz_day = date.today()
+        info_heure = datetime.now()
         while(1):
-            send_data = ""
-            frame = self._ser.readline()
-            self._log.debug(frame)
+            if raz_day != date.today():
+                raz_day = date.today()
+                time.sleep(10)
+                logging.info("RPICT------ HEARTBEAT raz le " + str(raz_day))
+                for cle, valeur in list(data.items()):
+                    data.pop(cle)
+                    data_temp.pop(cle)
             
-            data_temp = frame.split()
-            x = 0
-            data['nid'] = data_temp.pop(x)
-            for value in data_temp:
-                x += 1
-                cle="ch" + str(x)
-                data[cle] = str(value)
-            #print(data)
-
-            self.cmd = 'nice -n 19 timeout 8 /usr/bin/php ' + self._realpath + '/../php/jeeRpict.php api=' + self._cleApi
-            separateur = " "
-
-
-            for cle, valeur in data.items():
-                send_data += separateur + cle +'='+ valeur
+            frame = self.read()
+            logging.debug(frame)
+            _SendData = frame.pop(0)
+            raz_calcul = datetime.now() - raz_time
 
             try:
-                if frame != "":
-                    try:
-                        self._log.debug(self.cmd + send_data)
-                        send_data_bak = send_data
-                        thread = threading.Thread(target=target)
-                        self.timer = threading.Timer(int(10), timer_callback)
-                        self.timer.start()
-                        thread.start()
-                    except Exception, e:
-                        errorCom = "Connection error '%s'" % e
-                if (global_sleep != 0):
-                        self._log.debug("start sleeping " + str(global_sleep) + " seconds")
-                        time.sleep(global_sleep)
-                        self._log.debug("octets dans la file apres sleep " + str(self._ser.inWaiting()))
-                        self._ser.flushInput()
-                        self._log.debug("octets dans la file apres flush " + str(self._ser.inWaiting()))
-            except Exception:
-                erreur = ""
+                raz_time = datetime.now()
+                data = _SendData
+                _SendData["device"] = _SendData["nid"]
+                globals.JEEDOM_COM.add_changes('device::' + _SendData["nid"], _SendData)
+            except Exception as e:
+                logging.error("Connection error: " + str(e))
+            info_heure_calcul = datetime.now() - info_heure
+            if info_heure_calcul.seconds > 1800:
+                logging.info('RPICT------ Dernières datas reçues de la TIC : ' + str(data))
+                logging.info('RPICT------ Dernières datas envoyées vers Jeedom : ' + str(_SendData))
+                info_heure = datetime.now()
+            logging.debug("RPICT------ START SLEEPING " + str(globals.cycle_sommeil) + " seconds")
+            time.sleep(globals.cycle_sommeil)
+            logging.debug("RPICT------ WAITING : " + str(
+                globals.RPICT_SERIAL.in_waiting) + " octets dans la file apres sleep ")
+            if globals.RPICT_SERIAL.in_waiting > 1500:
+                globals.RPICT_SERIAL.reset_input_buffer()
+                logging.debug("RPICT------ BUFFER OVERFLOW => FLUSH")
+                logging.debug(str(globals.RPICT_SERIAL.in_waiting) + " octets dans la file apres flush ")
         self.terminate()
 
-    def exit_handler(self, *args):
-        self.terminate()
-        self._log.info("[exit_handler]")
 
-#------------------------------------------------------------------------------
+# noinspection PyBroadException
+def open():
+    """ open rpict device
+    """
+    try:
+        logging.info("RPICT------ OPEN CONNECTION")
+        globals.RPICT_SERIAL = serial.Serial(globals.port, globals.vitesse, bytesize=7, parity='N', stopbits=1)
+        logging.info("RPICT------ CONNECTION OPENED")
+    except serial.SerialException:
+        logging.error("RPICT------ Error opening RPICT device '%s' : %s" % (globals.port, traceback.format_exc()))
+
+
+def read_socket(cycle):
+    while True:
+        try:
+            global JEEDOM_SOCKET_MESSAGE
+            if not JEEDOM_SOCKET_MESSAGE.empty():
+                logging.debug("SOCKET-READ------ Message received in socket JEEDOM_SOCKET_MESSAGE")
+                message = json.loads(JEEDOM_SOCKET_MESSAGE.get())
+                logging.debug("SOCKET-READ------ Message received in socket JEEDOM_SOCKET_MESSAGE " + message['cmd'])
+                if message['apikey'] != globals.apikey:
+                    logging.error("SOCKET-READ------ Invalid apikey from socket : " + str(message))
+                    return
+                logging.debug('SOCKET-READ------ Received command from jeedom : ' + str(message['cmd']))
+                if message['cmd'] == 'action':
+                    logging.debug('SOCKET-READ------ Attempt an action on a device')
+                    _thread.start_new_thread(action_handler, (message,))
+                    logging.debug('SOCKET-READ------ Action Thread Launched')
+                elif message['cmd'] == 'changelog':
+                    log = logging.getLogger()
+                    for hdlr in log.handlers[:]:
+                        log.removeHandler(hdlr)
+                    jeedom_utils.set_log_level('info')
+                    logging.info('SOCKET-READ------ Passage des log du demon en mode ' + message['level'])
+                    for hdlr in log.handlers[:]:
+                        log.removeHandler(hdlr)
+                    jeedom_utils.set_log_level(message['level'])
+        except Exception as e:
+            logging.error("SOCKET-READ------ Exception on socket : %s" % str(e))
+            logging.debug(traceback.format_exc())
+        time.sleep(cycle)
+
+def listen():
+    globals.PENDING_ACTION = False
+    my_jeedom_socket.open()
+    logging.info("RPICT------ Start listening...")
+    globals.RPICT = Rpict()
+    logging.info("RPICT------ Preparing Rpict...")
+    _thread.start_new_thread(read_socket, (globals.cycle,))
+    logging.debug('RPICT------ Read Socket Thread Launched')
+    while 1:
+        try:
+            try:
+                logging.info("RPICT------ RUN")
+                open()
+            except error as err:
+                logging.error(err.value)
+                globals.RPICT.terminate()
+                return
+            globals.RPICT.run()
+        except Exception as e:
+            print("Error:")
+            print(e)
+            shutdown()
+
+
+def handler(signum=None, frame=None):
+    logging.debug("Signal %i caught, exiting..." % int(signum))
+    shutdown()
+
+
+def shutdown():
+    log = logging.getLogger()
+    for hdlr in log.handlers[:]:
+        log.removeHandler(hdlr)
+    jeedom_utils.set_log_level('debug')
+    logging.info("RPICT------ Shutdown")
+    logging.info("Removing PID file " + str(globals.pidfile))
+    try:
+        os.remove(globals.pidfile)
+    except:
+        pass
+    try:
+        my_jeedom_socket.close()
+    except:
+        pass
+    logging.debug("Exit 0")
+    sys.stdout.flush()
+    os._exit(0)
+
+
+# ------------------------------------------------------------------------------
 # MAIN
-#------------------------------------------------------------------------------
-if __name__ == "__main__":
-    usage = "usage: %prog [options]"
-    parser = OptionParser(usage)
-    parser.add_option("-p", "--port", dest="port", help="port du rpict")
-    parser.add_option("-c", "--cleapi", dest="cleapi", help="cle api de jeedom")
-    parser.add_option("-d", "--debug", dest="debug", help="mode debug")
-    parser.add_option("-r", "--realpath", dest="realpath", help="path usr")
-    parser.add_option("-v", "--vitesse", dest="vitesse", help="vitesse du lien uart")
-    parser.add_option("--logpath", dest="logpath", help="emplacement du log")
-    parser.add_option("--sleep", dest="sleep", help="sleep time", type="int")
+# ------------------------------------------------------------------------------
 
-    (options, args) = parser.parse_args()
-    if options.port:
-        try:
-            global_device_name = options.port
-        except:
-            error = "Can not change port %s" % options.port
-            raise RpictException(error)
-    if options.debug:
-        try:
-            if options.debug == '1':
-                gLogLevel = logging.DEBUG
-        except:
-            error = "Can not set debug mode %s" % options.debug
-            #raise RpictException(error)
-    if options.cleapi:
-        try:
-            global_api = options.cleapi
-        except:
-            error = "No API key passed %s" % options.cleapi
-            raise RpictException(error)
-    if options.realpath:
-        try:
-            global_real_path = options.realpath
-        except:
-            error = "Can not get realpath %s" % options.realpath
-            raise RpictException(error)
-    if options.vitesse:
-        try:
-            global_vitesse = options.vitesse
-        except:
-            error = "Can not get vitesse %s" % options.vitesse
-            raise RpictException(error)
-    if options.logpath:
-        try:
-            global_logfile = os.path.realpath(options.logpath) + '/rpict_deamon'
-            print "loggile : " + global_logfile
-        except:
-            error = "Can not get logptah %s" % options.logpath
-            raise RpictException(error)
-    if options.sleep:
-        try:
-            global_sleep = options.sleep
-        except:
-            error = "Can not get sleep %s" % options.sleep
-            raise RpictException(error)
-    if global_can_start == 'true':
-        print "Init deamon ..."
-        pid = str(os.getpid())
-        file("/tmp/rpict.pid", 'w').write("%s\n" % pid)
-        print "pidfile : " + "/tmp/rpict.pid"
-        rpict = Rpict(global_device_name, global_api, global_real_path, global_vitesse)
-        signal.signal(signal.SIGTERM, rpict.exit_handler)
-        signal.signal(signal.SIGINT, rpict.exit_handler)
-        rpict.run()
-    sys.exit()
+parser = argparse.ArgumentParser(description='RPICT Daemon for Jeedom plugin')
+parser.add_argument("--apikey", help="Value to write", type=str)
+parser.add_argument("--loglevel", help="Log Level for the daemon", type=str)
+parser.add_argument("--callback", help="Value to write", type=str)
+parser.add_argument("--socketport", help="Socket Port", type=str)
+parser.add_argument("--sockethost", help="Socket Host", type=str)
+parser.add_argument("--cycle", help="Cycle to send event", type=str)
+parser.add_argument("--port", help="Port du modem", type=str)
+parser.add_argument("--vitesse", help="Vitesse du modem", type=str)
+parser.add_argument("--cyclesommeil", help="Wait time between 2 readline", type=str)
+parser.add_argument("--pidfile", help="pidfile", type=str)
+args = parser.parse_args()
+
+if args.apikey:
+    globals.apikey = args.apikey
+if args.loglevel:
+    globals.log_level = args.loglevel
+if args.callback:
+    globals.callback = args.callback
+if args.socketport:
+    globals.socketport = args.socketport
+if args.sockethost:
+    globals.sockethost = args.sockethost
+if args.cycle:
+    globals.cycle = args.cycle
+if args.port:
+    globals.port = args.port
+if args.vitesse:
+    globals.vitesse = args.vitesse
+if args.cyclesommeil:
+    globals.cycle_sommeil = args.cyclesommeil
+if args.pidfile:
+    globals.pidfile = args.pidfile
+
+
+globals.socketport = int(globals.socketport)
+globals.cycle = float(globals.cycle)
+globals.cycle_sommeil = float(globals.cycle_sommeil)
+
+jeedom_utils.set_log_level(globals.log_level)
+
+globals.pidfile = globals.pidfile + ".pid"
+logging.info('RPICT------Start rpictd')
+
+logging.info('RPICT------ Cycle Sommeil : ' + str(globals.cycle_sommeil))
+logging.info('RPICT------ Socket port : ' + str(globals.socketport))
+logging.info('RPICT------ Socket host : ' + str(globals.sockethost))
+logging.info('RPICT------ Log level : ' + str(globals.log_level))
+logging.info('RPICT------ Callback : ' + str(globals.callback))
+logging.info('RPICT------ Vitesse : ' + str(globals.vitesse))
+logging.info('RPICT------ Apikey : ' + str(globals.apikey))
+logging.info('RPICT------ Cycle : ' + str(globals.cycle))
+logging.info('RPICT------ Port : ' + str(globals.port))
+logging.info('RPICT------ Pid File : ' + str(globals.pidfile))
+
+signal.signal(signal.SIGINT, handler)
+signal.signal(signal.SIGTERM, handler)
+
+try:
+	jeedom_utils.write_pid(str(globals.pidfile))
+	globals.JEEDOM_COM = jeedom_com(apikey=globals.apikey, url=globals.callback, cycle=globals.cycle)
+	if not globals.JEEDOM_COM.test():
+		logging.error('RPICT------ Network communication issues. Please fix your Jeedom network configuration.')
+		shutdown()
+	my_jeedom_socket = jeedom_socket(port=globals.socketport, address=globals.sockethost)
+	listen()
+except Exception as e:
+	logging.error('Fatal error: %s', e)
+	logging.info(traceback.format_exc())
+	shutdown()

@@ -24,6 +24,7 @@ if (!isConnect()) {
 
 $port = config::byKey('port', 'rpict');
 $core_version = '1.1.1';
+
 if (!file_exists(dirname(__FILE__) . '/info.json')) {
     log::add('rpict','warning','Pas de fichier info.json');
 }

@@ -18,13 +18,23 @@
 require_once dirname(__FILE__) . "/../../../../core/php/core.inc.php";
 set_time_limit(15);
 
-
-if (  (php_sapi_name() != 'cli' || isset($_SERVER['REQUEST_METHOD']) || !isset($_SERVER['argc']))
-   && (config::byKey('api') != init('api') && init('api') != '') ) {
-    echo "Clef API non valide, vous n\'êtes pas autorisé à effectuer cette action (jeeRpict)";
+if (!jeedom::apiAccess(init('apikey'), 'rpict')) {
+    echo __('Clef API non valide, vous n\'êtes pas autorisé à effectuer cette action (rpict)', __FILE__);
+    http_response_code(403);
     die();
 }
 
+if (init('test') != '') {
+	echo 'OK';
+	die();
+}
+
+$result = json_decode(file_get_contents("php://input"), true);
+if (!is_array($result)) {
+	die();
+}
+
+/*
 if (php_sapi_name() == 'cli') {
     foreach ($argv as $arg) {
         $e=explode("=",$arg);
@@ -106,3 +116,62 @@ foreach ($myDatas as $key => $value){
     }
 }
 log::add('rpict', 'debug', 'Reception de : ' . $sentDatas);
+*/
+
+
+$var_to_log = '';
+
+if (isset($result['device'])) {
+    foreach ($result['device'] as $key => $data) {
+            log::add('rpict','debug','This is a message from rpict program ' . $key);
+    		$eqlogic = rpict::byLogicalId($data['device'], 'rpict');
+    		if (is_object($eqlogic)) {
+                $healthCmd = $eqlogic->getCmd('info','health');
+                $healthEnable = false;
+                if (is_object($healthCmd)) {
+                    $healthEnable = true;
+                }
+                $flattenResults = array_flatten($data);
+                foreach ($flattenResults as $key => $value) {
+                    $cmd = $eqlogic->getCmd('info',$key);
+                    if ($cmd === false) {
+                        if($key != 'device'){
+                            rpict::createCmdFromDef($eqlogic->getLogicalId(), $key, $value);
+                            if($healthEnable) {
+                                $healthCmd->setConfiguration($key, array("name" => $key, "value" => $value, "update_time" => date("Y-m-d H:i:s")));
+                                $healthCmd->save();
+                            }
+                        }
+                    }
+                    else{
+                        $cmd->event($value);
+                        if($healthEnable) {
+                            $healthCmd->setConfiguration($key, array("name" => $key, "value" => $value, "update_time" => date("Y-m-d H:i:s")));
+                            $healthCmd->save();
+                        }
+                    }
+                }
+            }
+            else {
+                $rpict = ($data['device'] != '') ? rpict::createFromDef($data['device']) : rpict::createFromDef($data['device']);
+                if (!is_object($rpict)) {
+                    log::add('rpict', 'info', 'Aucun équipement trouvé pour la carte RPICT id n°' . $data['device']);
+                    die();
+                }
+            }
+            log::add('rpict','debug',$var_to_log);
+        }
+    }
+
+function array_flatten($array) {
+    global $var_to_log;
+    $return = array();
+    foreach ($array as $key => $value) {
+        $var_to_log = $var_to_log . $key . '=' . $value . '|';
+        if (is_array($value))
+            $return = array_merge($return, array_flatten($value));
+        else
+            $return[$key] = $value;
+    }
+    return $return;
+}

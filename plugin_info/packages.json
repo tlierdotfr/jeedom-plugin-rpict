@@ -1,0 +1,10 @@
+{
+    "apt" : {
+      "python3-ftdi1" : {}
+    },
+    "pip3" :{
+    },
+    "post-install" : {
+      "script" : "plugins/rpict/ressources/post-install.sh"
+    }
+  }
