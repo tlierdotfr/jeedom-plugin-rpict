@@ -111,9 +111,8 @@ class Rpict:
                 raz_time = datetime.now()
                 _SendData["device"] = data["nid"]
                 globals.JEEDOM_COM.add_changes('device::' + data["nid"], _SendData)
-            except Exception:
-                error_com = "Connection error"
-                logging.error(error_com)
+            except Exception as e:
+                logging.error("Connection error: " + str(e))
             info_heure_calcul = datetime.now() - info_heure
             if info_heure_calcul.seconds > 1800:
                 logging.info('RPICT------ Dernières datas reçues de la TIC : ' + str(data))
