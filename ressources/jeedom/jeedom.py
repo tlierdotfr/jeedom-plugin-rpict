@@ -324,9 +324,9 @@ class jeedom_socket():
 	def __init__(self,address='localhost', port=55000):
 		self.address = address
 		self.port = port
-		socketserver.TCPServer.allow_reuse_address = True
 
 	def open(self):
+		TCPServer.allow_reuse_address = True
 		self.netAdapter = TCPServer((self.address, self.port), jeedom_socket_handler)
 		if self.netAdapter:
 			logging.debug("Socket interface started")
