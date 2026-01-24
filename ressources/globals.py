@@ -9,7 +9,7 @@ apikey = ''
 callback = ''
 cycle = 0.3
 cycle_sommeil = 0.5
-socketport = 55062
+socketport = 55063
 sockethost = '127.0.0.1'
 ftdi_context = ''
 # RPICT settings

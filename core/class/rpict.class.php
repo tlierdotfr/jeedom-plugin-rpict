@@ -34,7 +34,7 @@ class rpict extends eqLogic
         sleep(1); // attend que le level ait eu le temps de s'écrire dans la bdd
         $value['cmd'] = 'changelog';
         $value['level'] = log::convertLogLevel(log::getLogLevel('rpict'));
-        $socketport = config::byKey('socketport', __CLASS__, '55062');
+        $socketport = config::byKey('socketport', __CLASS__, '55063');
         $value['apikey'] = jeedom::getApiKey(__CLASS__);
         self::sendToDaemon($value, 'serial', $socketport);
     }
@@ -143,7 +143,7 @@ class rpict extends eqLogic
 
         log::add('rpict', 'info', 'Démarrage compteur ');
         $modemVitesse         = config::byKey('modem_vitesse', 'rpict');
-        $socketPort           = config::byKey('socketport', 'rpict', '55062');
+        $socketPort           = config::byKey('socketport', 'rpict', '55063');
         if (config::byKey('port', 'rpict') == "serie") {
             $port = config::byKey('modem_serie_addr', 'rpict');
         } else {
