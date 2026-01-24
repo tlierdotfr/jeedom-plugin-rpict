@@ -137,7 +137,7 @@ class jeedom_com():
 				logging.error(response.text)
 				return False
 		except Exception as e:
-			logging.error('Callback result as a unknown error: %s. Please check your network configuration page'% (e.message,))
+			logging.error('Callback result as a unknown error: %s. Please check your network configuration page'% (str(e),))
 			return False
 		return True
 
@@ -188,7 +188,7 @@ class jeedom_utils():
 
 	@staticmethod
 	def dec2bin(x, width=8):
-		return ''.join(str((x>>i)&1) for i in xrange(width-1,-1,-1))
+		return ''.join(str((x>>i)&1) for i in range(width-1,-1,-1))
 
 	@staticmethod
 	def dec2hex(dec):
@@ -218,8 +218,8 @@ class jeedom_utils():
 
 	@staticmethod
 	def remove_accents(input_str):
-		nkfd_form = unicodedata.normalize('NFKD', unicode(input_str))
-		return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
+		nkfd_form = unicodedata.normalize('NFKD', str(input_str))
+		return "".join([c for c in nkfd_form if not unicodedata.combining(c)])
 
 	@staticmethod
 	def printHex(hex):
@@ -258,7 +258,7 @@ class jeedom_serial():
 		except serial.SerialException as e:
 			logging.error("Error: Failed to connect on device " + self.device + " Details : " + str(e))
 			return False
-		if not self.port.isOpen():
+		if not self.port.is_open:
 			self.port.open()
 		self.flushOutput()
 		self.flushInput()
@@ -280,14 +280,14 @@ class jeedom_serial():
 
 	def flushOutput(self,):
 		logging.debug("flushOutput serial port ")
-		self.port.flushOutput()
+		self.port.reset_output_buffer()
 
 	def flushInput(self):
 		logging.debug("flushInput serial port ")
-		self.port.flushInput()
+		self.port.reset_input_buffer()
 
 	def read(self):
-		if self.port.inWaiting() != 0:
+		if self.port.in_waiting != 0:
 			return self.port.read()
 		return None
 
