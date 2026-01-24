@@ -130,6 +130,8 @@ class jeedom_com():
 				d1[k] = v2
 
 	def test(self):
+		if not self.url:
+			return True
 		try:
 			response = requests.get(self.url + '?apikey=' + self.apikey, verify=False)
 			if response.status_code != requests.codes.ok:

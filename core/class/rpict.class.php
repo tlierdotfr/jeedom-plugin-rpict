@@ -219,6 +219,7 @@ class rpict extends eqLogic
         $return               = array();
         $return['log']        = 'rpict';
         $return['state']      = 'nok';
+        $returnmodem          = 'nok';
         $pidFile = jeedom::getTmpFolder('rpict') . '/rpict.pid';
         if (file_exists($pidFile)) {
             if (posix_getsid(trim(file_get_contents($pidFile)))) {
