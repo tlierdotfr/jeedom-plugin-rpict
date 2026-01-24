@@ -109,8 +109,9 @@ class Rpict:
 
             try:
                 raz_time = datetime.now()
-                _SendData["device"] = data["nid"]
-                globals.JEEDOM_COM.add_changes('device::' + data["nid"], _SendData)
+                data = _SendData
+                _SendData["device"] = _SendData["nid"]
+                globals.JEEDOM_COM.add_changes('device::' + _SendData["nid"], _SendData)
             except Exception as e:
                 logging.error("Connection error: " + str(e))
             info_heure_calcul = datetime.now() - info_heure
