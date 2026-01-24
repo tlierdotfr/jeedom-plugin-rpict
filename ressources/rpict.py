@@ -174,7 +174,7 @@ def read_socket(cycle):
 
 def listen():
     globals.PENDING_ACTION = False
-    jeedom_socket.open()
+    my_jeedom_socket.open()
     logging.info("RPICT------ Start listening...")
     globals.RPICT = Rpict()
     logging.info("RPICT------ Preparing Rpict...")
@@ -213,7 +213,7 @@ def shutdown():
     except:
         pass
     try:
-        jeedom_socket.close()
+        my_jeedom_socket.close()
     except:
         pass
     logging.debug("Exit 0")
@@ -266,10 +266,8 @@ globals.cycle_sommeil = float(globals.cycle_sommeil)
 
 jeedom_utils.set_log_level(globals.log_level)
 
-globals.JEEDOM_COM = jeedom_com(apikey=globals.apikey, url=globals.callback, cycle=globals.cycle)
 globals.pidfile = globals.pidfile + ".pid"
 logging.info('RPICT------Start rpictd')
-jeedom_utils.write_pid(str(globals.pidfile))
 
 logging.info('RPICT------ Cycle Sommeil : ' + str(globals.cycle_sommeil))
 logging.info('RPICT------ Socket port : ' + str(globals.socketport))
@@ -281,10 +279,19 @@ logging.info('RPICT------ Apikey : ' + str(globals.apikey))
 logging.info('RPICT------ Cycle : ' + str(globals.cycle))
 logging.info('RPICT------ Port : ' + str(globals.port))
 logging.info('RPICT------ Pid File : ' + str(globals.pidfile))
+
 signal.signal(signal.SIGINT, handler)
 signal.signal(signal.SIGTERM, handler)
-if not globals.JEEDOM_COM.test():
-    logging.error('RPICT------ Network communication issues. Please fix your Jeedom network configuration.')
-    shutdown()
-jeedom_socket = jeedom_socket(port=globals.socketport, address=globals.sockethost)
-listen()
+
+try:
+	jeedom_utils.write_pid(str(globals.pidfile))
+	globals.JEEDOM_COM = jeedom_com(apikey=globals.apikey, url=globals.callback, cycle=globals.cycle)
+	if not globals.JEEDOM_COM.test():
+		logging.error('RPICT------ Network communication issues. Please fix your Jeedom network configuration.')
+		shutdown()
+	my_jeedom_socket = jeedom_socket(port=globals.socketport, address=globals.sockethost)
+	listen()
+except Exception as e:
+	logging.error('Fatal error: %s', e)
+	logging.info(traceback.format_exc())
+	shutdown()
